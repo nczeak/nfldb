@@ -1,4 +1,4 @@
-from nfldb.team import standard_team
+from nfldb3.team import standard_team
 
 
 def test_standard_team():

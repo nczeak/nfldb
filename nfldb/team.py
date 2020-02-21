@@ -39,7 +39,9 @@ teams1 = [
 ]
 
 teams2 = [
-    ['LA', 'Los Angeles', 'Rams', 'Los Angeles Rams', 'L.A.'],
+    ['LAR', 'Los Angeles', 'Rams', 'Los Angeles Rams', 'L.A.', 'LA'],
+    ['LAC', 'Los Angeles', 'Chargers', 'Los Angeles Chargers', 'L.A.'],
+    ['LV', 'Las Vegas', 'Raiders', 'Las Vegas Raiders', 'L.V.', 'LVR'],
 ]
 
 

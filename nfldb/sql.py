@@ -201,14 +201,14 @@ class Entity (object):
             return f._sql_relation_distance(t)
 
         def relation_dists(froms, tos):
-            return filter(lambda (f, t, d): d is not None,
+            return filter(lambda p:(f:=p[0], t:=p[1], d:=p[2], d is not None),
                           ((f, t, dist(f, t)) for f in froms for t in tos))
 
         def more_general(froms, tos):
-            return filter(lambda (f, t, d): d < 0, relation_dists(froms, tos))
+            return filter(lambda p:(f:=p[0], t:=p[1], d:=p[2], d < 0), relation_dists(froms, tos))
 
         def more_specific(froms, tos):
-            return filter(lambda (f, t, d): d > 0, relation_dists(froms, tos))
+            return filter(lambda p:(f:=p[0], t:=p[1], d:=p[2], d > 0), relation_dists(froms, tos))
 
         joins = ''
         froms, tos = set([cls_from]), set(cls_tos)
@@ -224,10 +224,10 @@ class Entity (object):
                 froms.add(t)
                 return f._sql_join_to_all(t)
             if general:
-                f, t, _ = max(general, key=lambda (f, t, d): d)
+                f, t, _ = max(general, key=lambda p:(f:=p[0], t:=p[1], d:=p[2], d))
                 joins += add_join(f, t)
             if specific:
-                f, t, _ = min(specific, key=lambda (f, t, d): d)
+                f, t, _ = min(specific, key=lambda p:(f:=p[0], t:=p[1], d:=p[2], d))
                 joins += add_join(f, t)
         return joins
 

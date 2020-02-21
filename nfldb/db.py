@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
-import ConfigParser
+from configparser import ConfigParser
+from configparser import RawConfigParser
 import datetime
 import os
 import os.path as path
@@ -68,7 +69,7 @@ def config(config_path=''):
         path.join(_config_home, 'nfldb', 'config.ini'),
     ]
     tried = []
-    cp = ConfigParser.RawConfigParser()
+    cp = RawConfigParser()
     for p in paths:
         tried.append(p)
         try:
@@ -231,6 +232,16 @@ def _mogrify(cursor, xs):
     return cursor.mogrify('%s', (tuple(xs),))
 
 
+def _mogrify_team(cursor, xs, fieldsList):
+    """Shortcut for mogrifying a list as if it were a tuple."""
+    for valueIndex, [thisValue, thisColumn] in enumerate(zip(xs, fieldsList)):
+        if (thisColumn == "team") | (thisColumn == "pos_team"):
+            xs[valueIndex] = nfldb.standard_team(thisValue)
+            break
+    #print(cursor.mogrify('%s', (tuple(xs),)))
+    return cursor.mogrify('%s', (tuple(xs),))
+
+
 def _num_rows(cursor, table):
     """Returns the number of rows in table."""
     cursor.execute('SELECT COUNT(*) AS rowcount FROM %s' % table)
@@ -336,11 +347,11 @@ def _big_insert(cursor, table, datas):
     in exactly the same order.
     """
     stamped = table in ('game', 'drive', 'play')
-    insert_fields = [k for k, _ in datas[0]]
+    insert_fields_list = [k for k, _ in datas[0]]
     if stamped:
-        insert_fields.append('time_inserted')
-        insert_fields.append('time_updated')
-    insert_fields = ', '.join(insert_fields)
+        insert_fields_list.append('time_inserted')
+        insert_fields_list.append('time_updated')
+    insert_fields = ', '.join(insert_fields_list)
 
     def times(xs):
         if stamped:
@@ -350,8 +361,9 @@ def _big_insert(cursor, table, datas):
 
     def vals(xs):
         return [v for _, v in xs]
-    values = ', '.join(_mogrify(cursor, times(vals(data))) for data in datas)
-
+    # values = ', '.join(str(_mogrify(cursor, times(vals(data)))).replace('b"', '').replace('"', '') for data in datas) # TODO: faster?
+    # values = ', '.join(str(_mogrify_team(cursor, times(vals(data)), insert_fields_list)).replace('b"', '').replace('"', '').replace("b'(", "(").replace("')'", "')").replace("\\'", "'") for data in datas)
+    values = ', '.join(_mogrify_team(cursor, times(vals(data)), insert_fields_list).decode("utf-8") for data in datas)
     cursor.execute('INSERT INTO %s (%s) VALUES %s'
                    % (table, insert_fields, values))
 
@@ -399,7 +411,6 @@ def _upsert(cursor, table, data, pk):
     try:
         cursor.execute(q, values + pk_values + values + pk_values)
     except psycopg2.ProgrammingError as e:
-        print(cursor.query)
         raise e
 
 
@@ -440,7 +451,7 @@ def _migrate(conn, to):
     assert current <= to
 
     globs = globals()
-    for v in xrange(current+1, to+1):
+    for v in range(current+1, to+1):
         fname = '_migrate_%d' % v
         with Tx(conn) as c:
             assert fname in globs, 'Migration function %d not defined.' % v

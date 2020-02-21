@@ -1,10 +1,7 @@
 #!/usr/bin/env python2.7
 
 from __future__ import absolute_import, division, print_function
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
+from collections import OrderedDict
 import datetime
 import subprocess
 import sys
@@ -13,7 +10,6 @@ import time
 import nfldb
 
 import nflgame
-import nflgame.live
 
 
 _simulate = None
@@ -61,6 +57,7 @@ def game_from_id(cursor, gsis_id):
     if g is None:  # Whoops. I guess the pregame hasn't started yet?
         return game_from_schedule(cursor, gsis_id)
     return nfldb.Game._from_nflgame(cursor.connection, g)
+    # return nfldb.Game._from_nflgame(cursor, g)
 
 
 def game_from_id_simulate(cursor, gsis_id):
@@ -82,6 +79,7 @@ def game_from_id_simulate(cursor, gsis_id):
             "It looks like '%s' hasn't finished yet, so I cannot simulate it.")
 
     dbg = nfldb.Game._from_nflgame(cursor.connection, g)
+    # dbg = nfldb.Game._from_nflgame(cursor, g)
     old_drives = dbg._drives  # filled in from nflgame data
     new_drives = dbg._drives[0:_simulate['drives']]
     if len(old_drives) == len(new_drives):
@@ -154,7 +152,7 @@ def update_players(cursor, interval):
     ''')
 
     log('Updating %d players... ' % len(nflgame.players), end='')
-    for p in nflgame.players.itervalues():
+    for p in nflgame.players.values():
         dbp = nfldb.Player._from_nflgame_player(db, p)
         for table, prim, vals in dbp._rows:
             nfldb.db._upsert(cursor, table, vals, prim)
@@ -315,7 +313,7 @@ def update_current_week_schedule(db):
     phase, year, week = nfldb.current(db)
     log('Updating schedule for (%s, %d, %d)' % (phase, year, week))
     with nfldb.Tx(db) as cursor:
-        for gsis_id, info in nflgame.sched.games.iteritems():
+        for gsis_id, info in dict(nflgame.sched.games).items():
             if year == info['year'] and week == info['week'] \
                     and phase == phase_map[info['season_type']]:
                 g = game_from_id(cursor, gsis_id)
@@ -453,17 +451,19 @@ def run(player_interval=43200, interval=None, update_schedules=False,
 
         # Expand `simulate` to a real list of gsis ids since prefixes
         # are allowed.
-        lt = [gid + ('\x79' * (10 - len(gid))) for gid in simulate]
-        q = nfldb.Query(db).game(gsis_id__ge=simulate, gsis_id__le=lt)
+        # lt = [gid + ('\x79' * (10 - len(gid))) for gid in simulate]
+        # q = nfldb.Query(db).game(gsis_id__ge=simulate, gsis_id__le=lt)
+        q = nfldb.Query(db).game(gsis_id__eq=simulate)
         games = sorted(q.as_games(), key=lambda g: g.gsis_id)
-        for g in games:
+        '''for g in games:
             if not g.finished:
                 log('Game "%s" has not finished yet and therefore cannot '
                     'be simulated.' % g.gsis_id)
-                sys.exit(1)
+                sys.exit(1)'''
+        # simulate = [q.gsis_id]
         simulate = [g.gsis_id for g in games]
 
-        yesno = raw_input(
+        yesno = input(
             '*** PLEASE READ! ***\n\n'
             'Simulation mode will simulate games being played by deleting\n'
             'games from the database and slowly re-adding drives in the game\n'

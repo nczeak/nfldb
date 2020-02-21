@@ -1,9 +1,6 @@
 from __future__ import absolute_import, division, print_function
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
+from collections import OrderedDict
 from collections import defaultdict
 import datetime
 import itertools
@@ -1090,7 +1087,7 @@ class SQLPlayPlayer (sql.Entity):
     _sql_tables = {
         'primary': ['gsis_id', 'drive_id', 'play_id', 'player_id'],
         'managed': ['play_player'],
-        'tables': [('play_player', ['team'] + _player_categories.keys())],
+        'tables': [('play_player', ['team'] + list(_player_categories.keys()))],
         'derived': ['offense_yds', 'offense_tds', 'defense_tds', 'points'],
     }
 
@@ -1434,8 +1431,8 @@ class SQLPlay (sql.Entity):
         'tables': [
             ('play', ['time', 'pos_team', 'yardline', 'down', 'yards_to_go',
                       'description', 'note', 'time_inserted', 'time_updated',
-                      ] + _play_categories.keys()),
-            ('agg_play', _player_categories.keys()),
+                      ] + list(_play_categories.keys())),
+            ('agg_play', list(_player_categories.keys())),
         ],
         'derived': ['offense_yds', 'offense_tds', 'defense_tds', 'points',
                     'game_date'],

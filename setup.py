@@ -1,5 +1,5 @@
 import codecs
-from distutils.core import setup
+from setuptools import setup
 from glob import glob
 import os.path as path
 
@@ -14,7 +14,7 @@ except LookupError:
         return {True: enc}.get(name == 'mbcs')
     codecs.register(wrapper)
 
-install_requires = ['nflgame>=1.2.20', 'psycopg2', 'enum34', 'pytz']
+install_requires = ['nflgame', 'psycopg2', 'enum34', 'pytz']
 try:
     import argparse
 except ImportError:
@@ -36,15 +36,16 @@ assert version != '0.0.0'
 docfiles = glob('doc/nfldb/*.html') + glob('doc/*.pdf') + glob('doc/*.png')
 
 setup(
-    name='nfldb',
-    author='Andrew Gallant',
-    author_email='nfldb@burntsushi.net',
+    name='nfldb3',
+    author='Nick Zeak',
+    author_email='nczeak@gmail.com',
     version=version,
     license='UNLICENSE',
-    description='A library to manage and update NFL data in a relational '
-                'database.',
+    description='A library to manage and update NFL data in a Postgres '
+                'database updated for Python 3.8. Based on code written by '
+                'Andrew Gallant.',
     long_description=longdesc,
-    url='https://github.com/BurntSushi/nfldb',
+    url='',
     classifiers=[
         'License :: Public Domain',
         'Development Status :: 3 - Alpha',
@@ -53,8 +54,7 @@ setup(
         'Intended Audience :: End Users/Desktop',
         'Intended Audience :: Other Audience',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Database',
     ],
     platforms='ANY',

@@ -1,9 +1,6 @@
 from __future__ import absolute_import, division, print_function
 from collections import defaultdict
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
+from collections import OrderedDict
 import re
 
 from psycopg2.extensions import cursor as tuple_cursor
@@ -12,10 +9,9 @@ from nfldb.db import Tx
 import nfldb.sql as sql
 import nfldb.types as types
 
-try:
-    strtype = basestring
-except NameError:
-    strtype = str
+strtype = str
+
+# TODO: line 352ish
 
 
 __pdoc__ = {}
@@ -210,7 +206,7 @@ def guess_position(pps):
     counts = defaultdict(int)
     for pp in pps:
         counts[pp.guess_position] += 1
-    return max(counts.items(), key=lambda (_, count): count)[0]
+    return max(counts.items(), key=lambda p:(count := p[1], count)[0])
 
 
 def _append_conds(conds, entity, kwargs):
@@ -330,6 +326,8 @@ class Comparison (Condition):
         }
         for suffix, op in suffixes.items():
             if kw.endswith(suffix):
+                print(kw)
+                print(suffix)
                 self.operator = op
                 self.column = kw[0:-4]
         if self.column is None:
@@ -345,16 +343,23 @@ class Comparison (Condition):
 
     def _sql_where(self, cursor, aliases=None, aggregate=False):
         field = self.entity._sql_field(self.column, aliases=aliases)
+        # print(field) # TODO
         if aggregate:
             field = 'SUM(%s)' % field
         if isinstance(self.value, tuple) or isinstance(self.value, list):
+            print(self.operator)
             assert self.operator == '=', \
                 'Disjunctions must use "=" for column "%s"' % field
             vals = [cursor.mogrify('%s', (v,)) for v in self.value]
             return '%s IN (%s)' % (field, ', '.join(vals))
         else:
             paramed = '%s %s %s' % (field, self.operator, '%s')
-            return cursor.mogrify(paramed, (self.value,))
+            '''print(paramed)
+            print(self.value)
+            print(cursor.mogrify(paramed, (self.value,))) # TODO'''
+            # print("%s %s '%s'" % (field, self.operator, self.value)) # TODO
+            # return cursor.mogrify(paramed, (self.value,))
+            return "%s %s '%s'" % (field, self.operator, self.value)
 
 
 def QueryOR(db):
@@ -919,7 +924,9 @@ class Query (Condition):
         results = []
         with Tx(self._db) as cursor:
             q = self._make_join_query(cursor, types.Player)
-            cursor.execute(q)
+            q = q.replace('b"', '')
+            q = q.replace('"', '')
+            cursor.execute(q) # TODO
 
             for row in cursor.fetchall():
                 results.append(types.Player.from_row_dict(self._db, row))
@@ -961,7 +968,7 @@ class Query (Condition):
                     continue
                 joins += types.PlayPlayer._sql_join_to_all(ent)
 
-            sum_fields = types._player_categories.keys() \
+            sum_fields = list(types._player_categories.keys()) \
                 + AggPP._sql_tables['derived']
             select_sum_fields = AggPP._sql_select_fields(sum_fields)
             where = self._sql_where(cur)
@@ -984,7 +991,12 @@ class Query (Condition):
             )
 
             init = AggPP.from_row_dict
-            cur.execute(q)
+            '''q = q.replace("b'", "'")
+            q= q.replace("'game.season_year = 2012'", "game.season_year = 2012")
+            q = q.replace('b"', '')
+            q = q.replace('"', '')'''
+            # print(q)
+            cur.execute(q) # TODO
             for row in cur.fetchall():
                 results.append(init(self._db, row))
         return results
@@ -1022,10 +1034,13 @@ class Query (Condition):
         functions are used.
         """
         if aggregate:
+            # print(self._agg_orelse) # TODO
             return Condition._disjunctions(
                 cursor, [self._agg_andalso] + [[c] for c in self._agg_orelse],
                 aliases=aliases, aggregate=aggregate)
         else:
+            # print(self._orelse)  # TODO
+            # print(self._andalso)
             return Condition._disjunctions(
                 cursor, [self._andalso] + [[c] for c in self._orelse],
                 aliases=aliases, aggregate=aggregate)
